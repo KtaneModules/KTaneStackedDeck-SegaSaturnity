@@ -1,0 +1,10 @@
+{
+  "name": "stackedDeck-Editor",
+  "references": [
+    "stackedDeck"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": []
+}
