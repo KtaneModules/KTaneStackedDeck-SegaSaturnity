@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using KModkit;
+using System.Text.RegularExpressions;
 
 public class stackedDeck : MonoBehaviour {
 
@@ -162,4 +163,51 @@ public class stackedDeck : MonoBehaviour {
 		
 		return (val + suit);
 	}
+
+
+#pragma warning disable IDE0051 // Remove unused private members
+    private readonly string TwitchHelpMessage = "!{0} draw/deal ## [Draws that many cards by selecting the big screen.] | !{0} submit [Submits the face down card.]";
+#pragma warning restore IDE0051 // Remove unused private members
+
+    IEnumerator ProcessTwitchCommand(string command)
+    {
+		var rgxMatch = Regex.Match(command, @"^(d(eal|raw))\s[0-9]+$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+		if (command.EqualsIgnoreCase("submit"))
+        {
+			yield return null;
+			b_submit.OnInteract();
+        }
+		else if (command.EqualsIgnoreCase("draw") || command.EqualsIgnoreCase("deal"))
+        {
+			yield return null;
+			b_card.OnInteract();
+        }
+		else if (rgxMatch.Success)
+        {
+			var numLast = rgxMatch.Value.Split().Last();
+			int drawCnt;
+			if (!int.TryParse(numLast, out drawCnt) || drawCnt < 1 || drawCnt >= 52)
+            {
+				yield return string.Format("sendtochaterror I cannot understand why you want me to draw {0} card(s)!", numLast);
+				yield break;
+            }
+			yield return null;
+            for (var x = 0; x < drawCnt; x++)
+            {
+				b_card.OnInteract();
+				yield return new WaitForSeconds(0.1f);
+            }
+        }
+    }
+
+	IEnumerator TwitchHandleForcedSolve()
+    {
+		while (start_card != target_card)
+        {
+			b_card.OnInteract();
+			yield return new WaitForSeconds(0.1f);
+        }
+		b_submit.OnInteract();
+    }
+
 }
