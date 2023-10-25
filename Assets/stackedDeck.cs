@@ -17,7 +17,7 @@ public class stackedDeck : MonoBehaviour {
 	public TextMesh t_target;
 	
 	private bool isSolved;
-	private static int moduleCount;
+	private static int moduleCount = 1;
     private int moduleId;
 	
 	private int target_card;
@@ -166,38 +166,38 @@ public class stackedDeck : MonoBehaviour {
 
 
 #pragma warning disable IDE0051 // Remove unused private members
-    private readonly string TwitchHelpMessage = "!{0} draw/deal ## [Draws that many cards by selecting the big screen.] | !{0} submit [Submits the face down card.]";
+    private readonly string TwitchHelpMessage = "\"!{0} draw/deal ##\" [Draws 1 card or the amount specified.] | \"!{0} submit\" [Submits the current card.] | Can be chained by using semicolons between each command. (I.E. \"!{0} draw 5;submit\")";
 #pragma warning restore IDE0051 // Remove unused private members
 
     IEnumerator ProcessTwitchCommand(string command)
     {
-		var rgxMatch = Regex.Match(command, @"^(d(eal|raw))\s[0-9]+$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-		if (command.EqualsIgnoreCase("submit"))
-        {
-			yield return null;
-			b_submit.OnInteract();
-        }
-		else if (command.EqualsIgnoreCase("draw") || command.EqualsIgnoreCase("deal"))
-        {
-			yield return null;
-			b_card.OnInteract();
-        }
-		else if (rgxMatch.Success)
-        {
-			var numLast = rgxMatch.Value.Split().Last();
-			int drawCnt;
-			if (!int.TryParse(numLast, out drawCnt) || drawCnt < 1 || drawCnt >= 52)
-            {
-				yield return string.Format("sendtochaterror I cannot understand why you want me to draw {0} card(s)!", numLast);
+		var separatedCmd = command.Split(';').Select(a => a.Trim());
+		var allBtnsToPress = new List<KMSelectable>();
+		foreach (var cmd in separatedCmd)
+		{
+			//Debug.Log(cmd);
+			var rgxMatch = Regex.Match(cmd, @"^(d(eal|raw))(\s[0-9]+)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+			var rgxSubmit = Regex.Match(cmd, @"^sub(mit)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+			if (rgxSubmit.Success)
+				allBtnsToPress.Add(b_submit);
+			else if (rgxMatch.Success)
+			{
+				var splitCmd = rgxMatch.Value.Split();
+				var numLast = splitCmd.Last();
+				int drawCnt = 1;
+				if (splitCmd.Length > 1 && (!int.TryParse(numLast, out drawCnt) || drawCnt < 1 || drawCnt >= 52))
+				{
+					yield return string.Format("sendtochaterror I cannot understand why you want me to draw {0} card(s)!", numLast);
+					yield break;
+				}
+				for (var x = 0; x < drawCnt; x++)
+					allBtnsToPress.Add(b_card);
+			}
+			else
 				yield break;
-            }
-			yield return null;
-            for (var x = 0; x < drawCnt; x++)
-            {
-				b_card.OnInteract();
-				yield return new WaitForSeconds(0.1f);
-            }
-        }
+		}
+		yield return null;
+		yield return allBtnsToPress;
     }
 
 	IEnumerator TwitchHandleForcedSolve()
